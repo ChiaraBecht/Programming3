@@ -47,7 +47,7 @@ if __name__ == "__main__":
     argparser.add_argument("-n", action="store",
                            dest="n", required=False, type=int,
                            help="Number of references to download concurrently.")
-    argparser.add_argument("pubmed_id", action="store", type=str, nargs=1, help="Pubmed ID of the article to harvest for references to download.")
+    argparser.add_argument("-pubmed_id", action="store", type=str, nargs=1, help="Pubmed ID of the article to harvest for references to download.")
     args = argparser.parse_args()
     print("Getting: ", args.pubmed_id)
     pmid = str(args.pubmed_id)
