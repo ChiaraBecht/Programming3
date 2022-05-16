@@ -67,6 +67,8 @@ if __name__ == "__main__":
 
     # set up mulitprocessing task to download 10 referenced articles concurrently
     cpus = mp.cpu_count()
+    if cpus > 10:
+        cpus == 10
     with mp.Pool(cpus) as pool:
         results = pool.map(download_10_referenced_articles, refs[0:10])
     
