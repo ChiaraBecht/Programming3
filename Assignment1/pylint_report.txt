@@ -1,0 +1,20 @@
+ ************* Module assignment1
+ assignment1.py:7: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:21: convention (C0325, superfluous-parens, ) Unnecessary parens after 'not' keyword
+ assignment1.py:22: warning (W0311, bad-indentation, ) Bad indentation. Found 12 spaces, expected 8
+ assignment1.py:29: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:48: convention (C0303, trailing-whitespace, ) Trailing whitespace
+ assignment1.py:52: convention (C0301, line-too-long, ) Line too long (140/100)
+ assignment1.py:56: convention (C0301, line-too-long, ) Line too long (146/100)
+ assignment1.py:1: convention (C0114, missing-module-docstring, ) Missing module docstring
+ assignment1.py:7: warning (W0105, pointless-string-statement, ) String statement has no effect
+ assignment1.py:17: warning (W0621, redefined-outer-name, output_directory) Redefining name 'out_dir_p' from outer scope (line 15)
+ assignment1.py:25: warning (W0621, redefined-outer-name, download_articles_references) Redefining name 'pmid' from outer scope (line 59)
+ assignment1.py:30: warning (W0621, redefined-outer-name, download_articles_references) Redefining name 'results' from outer scope (line 73)
+ assignment1.py:38: warning (W0621, redefined-outer-name, download_10_referenced_articles) Redefining name 'pmid' from outer scope (line 59)
+ assignment1.py:71: warning (W0104, pointless-statement, ) Statement seems to have no effect
+ 
+ ------------------------------------------------------------------
+ Your code has been rated at 6.00/10 (previous run: 6.21/10, -0.21)
+ 
+ 
