@@ -1,11 +1,10 @@
 import multiprocessing as mp
 from multiprocessing.managers import BaseManager, SyncManager
-import os, sys, time, queue
+import time, queue
 import Bio.Entrez
 import pickle
 import argparse as ap
 from pathlib import Path
-#import my_entrez_query
 
 # set output path
 cwd = Path(__file__).parent.absolute()
@@ -53,6 +52,7 @@ def runserver(fn, data):
 
     print("Sending data!")
     for d in data:
+        print('iterate over data and print each item', d)
         shared_job_q.put({'fn' : fn, 'arg' : d})
 
     time.sleep(2)  
@@ -107,14 +107,12 @@ def download_articles_references(pmid):
     """
     For a given pubmed id download the references from NCBI using Bio.Entrez library
     """
-    Bio.Entrez.email = "chiara.becht@web.de"
     results = Bio.Entrez.read(Bio.Entrez.elink(dbfrom="pubmed",
                                    db="pmc",
                                    LinkName="pubmed_pmc_refs",
                                    id=pmid,
                                    api_key='c4507f85c841d7430a209603112dba418607'))
     references = [f'{link["Id"]}' for link in results[0]["LinkSetDb"][0]["Link"]]
-    
     return references
 
 # instructions for the client
@@ -184,18 +182,19 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     print(args)
     print("Getting: ", args.STARTING_PUBMED_ID)
-    pmid = str(args.STARTING_PUBMED_ID)
-    n = int(args.n)
+    pmid = args.STARTING_PUBMED_ID
+    n = args.n
     POISONPILL = "MEMENTOMORI"
     ERROR = "DOH"
-    IP = str(args.host)
+    IP = str(args.host[0])
     PORTNUM = int(args.port)
-    AUTHKEY = b'authorslists'
+    AUTHKEY = b'whathasitgotinitspocketsesss?'
     # get reference list as data
     data = download_articles_references(pmid)
+    print(data)
 
     if args.s:
-        server = mp.Process(target=runserver, args=(download_authors, data))
+        server = mp.Process(target=runserver, args=(download_authors, data[0:args.a]))
         server.start()
         time.sleep(1)
         server.join()
