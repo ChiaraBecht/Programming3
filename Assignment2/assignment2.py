@@ -4,7 +4,20 @@ import os, sys, time, queue
 import Bio.Entrez
 import pickle
 import argparse as ap
-import my_entrez_query
+from pathlib import Path
+#import my_entrez_query
+
+# set output path
+cwd = Path(__file__).parent.absolute()
+out_dir_p = cwd / 'output'
+
+def output_directory(out_dir_p):
+    """
+    Create the output directory in the same directory this script is located
+    """
+    if not(out_dir_p.exists()):
+            out_dir_p.mkdir(parents=True, exist_ok=False)
+
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
@@ -110,7 +123,7 @@ def download_authors(pmid):
     record = Bio.Entrez.read(handle)
     info = tuple(record[0]['AuthorList'])
     print(info)
-    with open(f'output/{pmid}.authors.pkl', 'wb') as handle:
+    with open(f'{out_dir_p}/{pmid}.authors.pkl', 'wb') as handle:
         pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -153,35 +166,42 @@ def peon(job_q, result_q):
             time.sleep(1)
 
 
-POISONPILL = "MEMENTOMORI"
-ERROR = "DOH"
-IP = ''
-PORTNUM = 5381
-AUTHKEY = b'whathasitgotinitspocketsesss?'
-data = ["Always", "look", "on", "the", "bright", "side", "of", "life!"]
 
-#server = mp.Process(target=runserver, args=(capitalize, data))
-#server.start()
-#time.sleep(1)
-#client = mp.Process(target=runclient, args=(4,))
-#client.start()
-#server.join()
-#client.join()
+if __name__ == '__main__':
+    # Create output directory
+    output_directory(out_dir_p)
 
-def main():
+    #assignment2.py -n <number_of_peons_per_client> [-c | -s] --port <portnumber> --host <serverhost> -a <number_of_articles_to_download> STARTING_PUBMED_ID
     argparser = ap.ArgumentParser(description="Script that downloads authors to number of user provided articles referenced by the given PubMed ID concurrently.")
-    argparser.add_argument("-n", action="store",
-                           dest="n", required=False, type=int,
-                           help="Number of references to download concurrently.")
-    argparser.add_argument("-pubmed_id", action="store", type=str, nargs=1, help="Pubmed ID of the article to harvest for references to download.")
+    argparser.add_argument("-a", action="store", dest="a", required=False, type=int, help="Number of references to download concurrently.")
+    argparser.add_argument("-n", action="store", dest="n", type=int, help="Number of peons per client.")
+    group = argparser.add_mutually_exclusive_group()
+    group.add_argument('-c', action='store_true', dest="c")
+    group.add_argument('-s', action='store_true', dest="s")
+    argparser.add_argument("--port", action="store", dest="port", type=int, help="port number")
+    argparser.add_argument("--host", action="store", dest="host", type=str, help="host")
+    argparser.add_argument("STARTING_PUBMED_ID", action="store", nargs=1)
     args = argparser.parse_args()
-    print("Getting: ", args.pubmed_id)
-    pmid = str(args.pubmed_id)
+    print(args)
+    print("Getting: ", args.STARTING_PUBMED_ID)
+    pmid = str(args.STARTING_PUBMED_ID)
+    n = int(args.n)
+    POISONPILL = "MEMENTOMORI"
+    ERROR = "DOH"
+    IP = str(args.host)
+    PORTNUM = int(args.port)
+    AUTHKEY = b'authorslists'
+    # get reference list as data
+    data = download_articles_references(pmid)
 
-    # get reference list
-    refs = download_articles_references(pmid)
-    print(download_articles_references(30049270))
-    download_authors(30049270)
-
-if __name__ == "__main__":
-    main()
+    if args.s:
+        server = mp.Process(target=runserver, args=(download_authors, data))
+        server.start()
+        time.sleep(1)
+        server.join()
+        
+    
+    if args.c:
+        client = mp.Process(target=runclient, args=(n,))
+        client.start()
+        client.join()
