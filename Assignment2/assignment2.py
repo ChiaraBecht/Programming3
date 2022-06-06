@@ -117,12 +117,21 @@ def download_articles_references(pmid):
 
 # instructions for the client
 def download_authors(pmid):
-    handle = Bio.Entrez.esummary(db="pubmed", id=pmid)
-    record = Bio.Entrez.read(handle)
-    info = tuple(record[0]['AuthorList'])
-    print(info)
+    try:
+        handle = Bio.Entrez.esummary(db="pubmed", id=pmid)
+        record = Bio.Entrez.read(handle)
+        info = tuple(record[0]['AuthorList'])
+        print(info)
+        handle1 = Bio.Entrez.efetch(db="pmc", id=pmid, rettype="XML", retmode="text",
+                           api_key='c4507f85c841d7430a209603112dba418607')
+    except RuntimeError:
+        info == (None)
+    
     with open(f'{out_dir_p}/{pmid}.authors.pkl', 'wb') as handle:
         pickle.dump(info, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    with open(f'{out_dir_p}/{pmid}.xml', 'wb') as file:
+        file.write(handle1.read())
 
 
 def runclient(num_processes):
@@ -186,15 +195,16 @@ if __name__ == '__main__':
     n = args.n
     POISONPILL = "MEMENTOMORI"
     ERROR = "DOH"
-    IP = str(args.host[0])
-    PORTNUM = int(args.port)
+    IP = args.host
+    PORTNUM = args.port
     AUTHKEY = b'whathasitgotinitspocketsesss?'
     # get reference list as data
-    data = download_articles_references(pmid)
-    print(data)
+    references = download_articles_references(pmid)
+    references = references[0:args.a]
+    print(references)
 
     if args.s:
-        server = mp.Process(target=runserver, args=(download_authors, data[0:args.a]))
+        server = mp.Process(target=runserver, args=(download_authors, references))
         server.start()
         time.sleep(1)
         server.join()
