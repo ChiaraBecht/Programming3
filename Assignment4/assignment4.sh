@@ -11,11 +11,11 @@ mkdir -p ${output}
 output_folder=${output}Chiara_
 
 # parallelise the task for seveal k-mer sizes
-seq 29 2 31 | parallel -j16 "velveth ${output_folder}{} {} -longPaired -fastq -separate ${paired_NGS_1} ${paired_NGS_2} &&  velvetg ${output_folder}{} && cat ${output_folder}{}/contigs.fa | python3 assignment4.py -kmers {} >> /students/2021-2022/master/Chiara_DSLS/output/kmers.csv"
+seq 29 2 31 | parallel -j16 "velveth ${output_folder}{} {} -longPaired -fastq -separate ${paired_NGS_1} ${paired_NGS_2} &&  velvetg ${output_folder}{} && cat ${output_folder}{}/contigs.fa | python3 assignment4.py -kmers {} >> /students/2021-2022/master/Chiara_DSLS/output/kmer_settings.csv"
 
 output1=/homes/cbecht/programming3/Programming3/Assignment4/output
 mkdir -p ${output1}
 
-python3 best_kmer.py
+python3 best_N50.py
 
 rm -r $output_folder*
