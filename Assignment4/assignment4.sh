@@ -1,20 +1,21 @@
 #!/bin/bash
 
 # store the paths to files as variables
-paired_NGS_1=/data/dataprocessing/MinIONData/MG5267/MG5267_TGACCA_L008_R1_001_BC24EVACXX.filt.fastq
-paired_NGS_2=/data/dataprocessing/MinIONData/MG5267/MG5267_TGACCA_L008_R2_001_BC24EVACXX.filt.fastq
+export paired_NGS_1=/data/dataprocessing/MinIONData/MG5267/MG5267_TGACCA_L008_R1_001_BC24EVACXX.filt.fastq
+export paired_NGS_2=/data/dataprocessing/MinIONData/MG5267/MG5267_TGACCA_L008_R2_001_BC24EVACXX.filt.fastq
 
 # make an output directory
-mkdir -p output
-output_folder=output/Chiara_
+output=/students/2021-2022/master/Chiara_DSLS/output/
+mkdir -p ${output}
+
+output_folder=${output}Chiara_
 
 # parallelise the task for seveal k-mer sizes
-seq 29 2 31 | parallel -j16 velveth $output_folder{} {} -longPaired -fastq -separate $paired_NGS_1 $paired_NGS_2 
+seq 29 2 31 | parallel -j16 "velveth ${output_folder}{} {} -longPaired -fastq -separate ${paired_NGS_1} ${paired_NGS_2} &&  velvetg ${output_folder}{} && cat ${output_folder}{}/contigs.fa | python3 assignment4.py -kmers {} >> /students/2021-2022/master/Chiara_DSLS/output/kmers.csv"
 
-# for now create roadmap  for kmer length 31 (DeBruijn graph)
-#velveth ./programming3/Programming3/Assignment4/Chiara 31 -longPaired -fastq -separate /data/dataprocessing/MinIONData/MG5267/MG5267_TGACCA_L008_R1_001_BC24EVACXX.filt.fastq /data/dataprocessing/MinIONData/MG5267/MG5267_TGACCA_L008_R2_001_BC24EVACXX.filt.fastq 
+output1=/homes/cbecht/programming3/Programming3/Assignment4/output
+mkdir -p ${output1}
 
-#built contigs
-#seq 29 2 31 | parallel -j16 velvetg $output_folder{}
+python3 best_kmer.py
 
-#seq 29 2 31 | parallel -j16 -N5 python3 assignment4.py -kmers {}
+rm -r $output_folder*
