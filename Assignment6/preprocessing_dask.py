@@ -1,10 +1,11 @@
 from dask import dataframe as dd
 
 df = dd.read_table('/students/2021-2022/master/Chiara_DSLS/output/mapping_result.csv', names=['read_id', 'reference'], na_values= '*')
+#print(df.compute())
 print(df.head())
 print(df.tail())
 
-df[['GenInfo_ID', 'number', 'ref', 'NCBI_ID', 'empty']] = df['reference'].str.split(pat = '|', n = 4, expand = True)
+df[['GenInfo_ID', 'gi_number', 'ref', 'NCBI_ID', 'empty']] = df['reference'].str.split(pat = '|', n = 4, expand = True)
 df = df.drop(columns = ['reference', 'empty'])
 print(df.head())
 
@@ -35,9 +36,18 @@ print(NCBI_IDs.compute(), len(NCBI_IDs))
 
 
 # convert NCBI accession numbers into KEGG identifiers
-from Bio.KEGG import REST
+#from Bio.KEGG import REST
 
 #REST.kegg_conv('pathway', NCBI_IDs) #'org'
 #h = REST.kegg_conv("eco", "ncbi-geneid")
 #print(h.head())
-h = REST.kegg_conv("genes", "ncbi-gi:253771435")
+#h = REST.kegg_conv("pathway", "ncbi-geneid:947465")
+#print(h)
+from urllib import request
+#h = request.urlopen('https://rest.kegg.jp/conv/genes/ncbi-geneid:947465')
+#print(h)
+html = request.urlopen('https://rest.kegg.jp/conv/genes/ncbi-geneid:387825439').read() #947465
+print(html)
+
+#htmll = request.urlopen('https://rest.kegg.jp/link/pathway/eco:b0074').read()
+#print(htmll)
