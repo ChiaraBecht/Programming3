@@ -1,6 +1,12 @@
 import linecache
+import multiprocessing as mp
 
 class Reader:
+    """
+    read x lines from a file. The number of lines has to be chosen by the user. The file reading
+    starts at defined line, after reading the block the line pointer is updated. When calling the
+    function again, the reading start from the line where the pointer was updated to.
+    """
     def __init__(self, datasource, stridelength):
         #create a CsvConverter with the first line of
         #that data-source
@@ -10,6 +16,13 @@ class Reader:
         #self.converter = CsvConverter(linecache.getline(self.file, 1))
 
     def get_lines(self):
+        """
+        :param:
+            datasource: full path to file
+            stridelength: block size of lines which shall be read in one function call
+        :return:
+            lines: list of tuples with the gi number and the read length
+        """
         lines = []
         for x in range(self.counter, self.counter + self.stride_length):
             print('entered loop')
@@ -32,6 +45,7 @@ class Reader:
             
         self.counter += self.stride_length
         print(lines)
+        return lines
 
 
 
