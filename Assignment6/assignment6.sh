@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# run for two hours
+# run for thirty minutes
 #              d-hh:mm:ss
 #SBATCH --time 0-00:30:00
 
@@ -32,4 +32,4 @@ minimap2 -ax map-ont -t 15 ${reference} ${reads} > /students/2021-2022/master/Ch
 #export text_len=${file_len} - 1
 
 # get rid of the header line, from the rest extract the read identifier and the reference id it was mapped to
-cat /students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam | tail -n ${text_len} | cut -f 1,3 > /students/2021-2022/master/Chiara_DSLS/Assignment6/output/mapping_summary.csv
+#cat /students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam | tail -n ${text_len} | cut -f 1,3 > /students/2021-2022/master/Chiara_DSLS/Assignment6/output/mapping_summary.csv
