@@ -1,51 +1,6 @@
 import linecache
 import multiprocessing as mp
-
-class Reader:
-    """
-    read x lines from a file. The number of lines has to be chosen by the user. The file reading
-    starts at defined line, after reading the block the line pointer is updated. When calling the
-    function again, the reading start from the line where the pointer was updated to.
-    """
-    def __init__(self, datasource, stridelength):
-        #create a CsvConverter with the first line of
-        #that data-source
-        self.file = datasource
-        self.stride_length = stridelength
-        self.counter = 2
-        #self.converter = CsvConverter(linecache.getline(self.file, 1))
-
-    def get_lines(self):
-        """
-        :param:
-            datasource: full path to file
-            stridelength: block size of lines which shall be read in one function call
-        :return:
-            lines: list of tuples with the gi number and the read length
-        """
-        lines = []
-        for x in range(self.counter, self.counter + self.stride_length):
-            print('entered loop')
-            print('counter', self.counter)
-            print('line number', x)
-            line = linecache.getline(self.file, x)
-            splitted_line = line.split('    ') #should be tab
-            print(splitted_line)
-            try:
-                ref_id = splitted_line[2]
-                if ref_id != '*':
-                    gi_id = ref_id.split('|')[1]
-                    read_seq = splitted_line[3].rstrip() # only correct for my dummy file
-                    read_len = len(read_seq)
-                    lines.append((gi_id, read_len))
-                    print(lines)
-            except:
-                print('exception', x, line)
-                break
-            
-        self.counter += self.stride_length
-        print(lines)
-        return lines
+import math
 
 def calc_total_lines(datasource):
     """
@@ -63,11 +18,52 @@ def calc_total_lines(datasource):
     print('Total Lines', count + 1)
     return count + 1
 
-f = Reader('dummy1.sam', 5)
-print(50*'--')
-f.get_lines()
-print(50*'--')
-f.get_lines()
-print(50*'--')
-total_lines = calc_total_lines('test_200.sam')
-print(total_lines)
+
+def get_lines(data_source, stride_length):
+    """
+    read x lines from a file. The number of lines has to be chosen by the user. The file reading
+    starts at defined line, after reading the block the line pointer is updated. When calling the
+    function again, the reading start from the line where the pointer was updated to.
+    :param:
+        datasource: full path to file
+        stridelength: block size of lines which shall be read in one function call
+    :return:
+        lines: list of tuples with the gi number and the read length
+    """
+    counter = 2
+    lines = []
+    for x in range(counter, counter + stride_length):
+        print('entered loop')
+        print('counter', counter)
+        print('line number', x)
+        line = linecache.getline(data_source, x)
+        splitted_line = line.split('    ') #should be tab
+        print(splitted_line)
+        try:
+            ref_id = splitted_line[2]
+            if ref_id != '*':
+                gi_id = ref_id.split('|')[1]
+                read_seq = splitted_line[3].rstrip() # only correct for my dummy file
+                read_len = len(read_seq)
+                lines.append((gi_id, read_len))
+                print(lines)
+        except:
+            print('exception', x, line)
+            break
+        
+    counter += stride_length
+    print(lines)
+    return lines
+
+"""
+import functools
+
+if __name__ == '__main__':
+    cpus = 2
+    num_lines = calc_total_lines('dummy1.sam')
+    with mp.Pool(cpus) as pool:
+        results = pool.map(functools.partial(get_lines, 'dummy1.sam'), range(num_lines))
+    #inputs = [('dummy1.sam', 4), ('dummy1.sam', 3)]
+    #with mp.Pool(cpus) as pool:
+    #    results = pool.starmap(get_lines, inputs)
+"""
