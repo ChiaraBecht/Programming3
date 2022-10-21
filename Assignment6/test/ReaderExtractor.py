@@ -47,10 +47,27 @@ class Reader:
         print(lines)
         return lines
 
-
+def calc_total_lines(datasource):
+    """
+    calculate the total number of lines in the sam file, that shall be processed.
+    :param:
+        datasource: the full file path and file name to the sam file
+    
+    :return:
+        total_lines: number of lines in the file
+    """
+    # open file in read mode
+    with open(datasource, 'r') as fp:
+        for count, line in enumerate(fp):
+            pass
+    print('Total Lines', count + 1)
+    return count + 1
 
 f = Reader('dummy1.sam', 5)
 print(50*'--')
 f.get_lines()
 print(50*'--')
 f.get_lines()
+print(50*'--')
+total_lines = calc_total_lines('test_200.sam')
+print(total_lines)
