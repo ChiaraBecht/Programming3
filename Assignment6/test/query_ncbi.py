@@ -7,7 +7,7 @@ def query_nbi(gi_id, out_dir):
     Entrez.email = "chiara.becht@web.de"
     handle = Entrez.efetch(db='nucleotide',
                                 id = gi_id, 
-                                rettype = 'gb',#'gbwithparts', 
+                                rettype = 'gbwithparts', 
                                 retmode = 'text', 
                                 api_key='c4507f85c841d7430a209603112dba418607')
     
