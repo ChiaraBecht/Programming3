@@ -3,6 +3,7 @@ from multiprocessing.managers import BaseManager, SyncManager
 import time, queue
 from io import SEEK_END
 import argparse as ap
+from functools import partial
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
@@ -113,7 +114,7 @@ def peon(job_q, result_q):
                 return
             else:
                 try:
-                    result = job['fn'](job['arg'][0], job['arg'][1], job['arg'][2])
+                    result = job['fn'](job['arg']) #result = job['fn'](job['arg'][0], job['arg'][1], job['arg'][2])
                     print("Peon %s Workwork on %s!" % (my_name, job['arg']))
                     result_q.put({'job': job, 'result' : result})
                 except NameError:
@@ -125,7 +126,7 @@ def peon(job_q, result_q):
             time.sleep(1)
 
 
-def instructions(filename, line_nr, storage_loc):
+def instructions(filename, storage_loc, line_nr):
     """
     the work a peon has to do:
     - read a line from sam file
@@ -191,9 +192,10 @@ if __name__ == '__main__':
         s_locs.append(storage_loc)
     
     data_list = [f_names, lines, s_locs]
+    func = partial(instructions, filename, storage_loc)
     
     if args.s:
-        server = mp.Process(target=runserver, args=(instructions, data))
+        server = mp.Process(target=runserver, args=(func, lines))
         server.start()
         time.sleep(1)
         server.join()
