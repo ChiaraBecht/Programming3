@@ -1,7 +1,6 @@
 import multiprocessing as mp
 from multiprocessing.managers import BaseManager, SyncManager
 import time, queue
-from io import SEEK_END
 import argparse as ap
 from functools import partial
 
@@ -152,6 +151,47 @@ def instructions(filename, storage_loc, line_nr):
     f.write(l)
     f.close()
 
+def read_process_line(filename, line_nr):
+    """
+    Open file, read specified line number and extract gi_number and start and stop position
+    """
+    # read specific line from file
+    with open(filename) as file:
+        for i, l in enumerate(file):
+            if i == line_nr:
+                line = l
+    
+    # process line
+    splitted_line = line.split('\t') #should be tab
+    print(splitted_line)
+    ref_id = splitted_line[2]
+    print(ref_id)
+    if ref_id != '*':
+        gi_id = ref_id.split('|')[1]
+        NCBI_id = ref_id.split('|')[3]
+        read_seq = splitted_line[9].rstrip()
+        start_pos = int(splitted_line[3])
+        
+        try:
+            print('try')
+            read_len = len(read_seq)
+            stop_pos = int(start_pos) + read_len
+            print(gi_id, NCBI_id, start_pos, stop_pos)
+            mapping_info = [gi_id,(start_pos, stop_pos)]
+            return mapping_info
+        except:
+            print('exception: no read sequence')
+            read_len = 1
+            print(read_len)
+            stop_pos = int(start_pos) + read_len
+            print(gi_id, NCBI_id, start_pos, stop_pos)
+            mapping_info = [gi_id, (start_pos, stop_pos)]
+            return mapping_info
+    else:
+        print('exception: no ref id')
+
+
+
 if __name__ == '__main__':
     argparser = ap.ArgumentParser(description="test")
     #argparser.add_argument("-a", action="store", dest="a", required=False, type=int, help="Number of references to download concurrently.")
@@ -174,12 +214,12 @@ if __name__ == '__main__':
     AUTHKEY = b'whathasitgotinitspocketsesss?'
 
     lines = []
-    with open('DUMMY.sam') as file:
+    with open('Dummy.sam') as file:
         # get file length measured by characters
         for i,line in enumerate(file):
             lines.append(i)
     
-    filename = 'DUMMY.sam'
+    filename = 'Dummy.sam'
     storage_loc = './output'
 
     data = []
@@ -192,10 +232,12 @@ if __name__ == '__main__':
         s_locs.append(storage_loc)
     
     data_list = [f_names, lines, s_locs]
-    func = partial(instructions, filename, storage_loc)
+    #func = partial(instructions, filename, storage_loc)
+    func1 = partial(read_process_line, filename)
     
     if args.s:
-        server = mp.Process(target=runserver, args=(func, lines))
+        #server = mp.Process(target=runserver, args=(func, lines))
+        server = mp.Process(target=runserver, args=(func1, lines))
         server.start()
         time.sleep(1)
         server.join()
@@ -205,4 +247,3 @@ if __name__ == '__main__':
         client = mp.Process(target=runclient, args=(n,))
         client.start()
         client.join()
-    instructions(filename = 'DUMMY.sam', line_nr = 1, storage_loc = './output')
