@@ -7,6 +7,7 @@ from Bio import Entrez
 from Bio import SeqIO
 from collections import defaultdict
 import re
+import os
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
@@ -29,41 +30,38 @@ def make_server_manager(port, authkey):
     print('Server started at port %s' % port)
     return manager
 
-def runserver(fn, data_1): #fn, data
+def runserver(fn, data):
 # Start a shared manager server and access its queues
     manager = make_server_manager(PORTNUM, b'whathasitgotinitspocketsesss?')
     shared_job_q = manager.get_job_q()
     shared_result_q = manager.get_result_q()
 
-    if not data_1:
+    if not data:
         print("Gimme something to do here!")
         return
     
 
     print("Sending data!")
-    for d in data_1:
+    for d in data:
         print('iterate over data and print each item', d)
         shared_job_q.put({'fn' : fn, 'arg' : d})
         print({'fn' : fn, 'arg' : d})
 
     time.sleep(2)  
 
-    results_1 = []
+    results = []
     while True:
         try:
             result = shared_result_q.get_nowait()
-            results_1.append(result)
+            results.append(result)
             print("Got result!", result)
-            if len(results_1) == len(data_1):
+            if len(results) == len(data):
                 print("Got all results!")
                 break
         except queue.Empty:
             time.sleep(1)
             continue
     
-    # results of job 1:
-    for res in results_1:
-        print(res['result'])
     # Tell the client process no more data will be forthcoming
     print("Time to kill some peons!")
     shared_job_q.put(POISONPILL)
@@ -73,6 +71,8 @@ def runserver(fn, data_1): #fn, data
     print("Aaaaaand we're done for the server!")
     manager.shutdown()
     #print(results)
+    for res in results:
+        print(res['result'])
     
 
 
@@ -126,39 +126,13 @@ def peon(job_q, result_q):
                     print("Peon %s Workwork on %s!" % (my_name, job['arg']))
                     result_q.put({'job': job, 'result' : result})
                 except NameError:
-                    print("Can't find yer fun Bob!")
+                    print("Peon %s found exception on %s!" % (my_name, job['arg']))
                     result_q.put({'job': job, 'result' : ERROR})
 
         except queue.Empty:
             print("sleepytime for", my_name)
             time.sleep(1)
 
-
-def instructions(filename, storage_loc, line_nr):
-    """
-    the work a peon has to do:
-    - read a line from sam file
-    - extract gi_number, start_pos, end_pos
-    - download genbank file for given gi_number if file is not present yet
-    - extract annotationi from genbank file given file, start_pos, end_pos
-
-    to test the setup:
-    - read a line from a file
-    - report the content
-    - write content to a mass storage
-    """
-    # read file
-    with open(filename) as file:
-        for i, line in enumerate(file):
-            if i == line_nr:
-                print(line)
-                l = line
-    
-    print(l)
-    out_file = storage_loc + '/' + str(line_nr) + '.txt'
-    f = open(out_file, 'w')
-    f.write(l)
-    f.close()
 
 def read_process_line(filename, line_nr):
     """
@@ -172,35 +146,34 @@ def read_process_line(filename, line_nr):
     
     # process line
     splitted_line = line.split('\t') #should be tab
-    print(splitted_line)
+    #print(splitted_line)
     ref_id = splitted_line[2]
-    print(ref_id)
+    #print(ref_id)
     if ref_id != '*':
         gi_id = ref_id.split('|')[1]
-        NCBI_id = ref_id.split('|')[3]
         read_seq = splitted_line[9].rstrip()
         start_pos = int(splitted_line[3])
         
         try:
-            print('try')
+            #print('try')
             read_len = len(read_seq)
             stop_pos = int(start_pos) + read_len
-            print(gi_id, NCBI_id, start_pos, stop_pos)
+            #print(gi_id, NCBI_id, start_pos, stop_pos)
             #mapping_info = [gi_id,(start_pos, stop_pos)]
-            return gi_id, (start_pos, stop_pos)
+            return gi_id, start_pos, stop_pos
         except:
-            print('exception: no read sequence')
+            #print('exception: no read sequence')
             read_len = 1
-            print(read_len)
+            #print(read_len)
             stop_pos = int(start_pos) + read_len
-            print(gi_id, NCBI_id, start_pos, stop_pos)
+            #print(gi_id, NCBI_id, start_pos, stop_pos)
             #mapping_info = [gi_id, (start_pos, stop_pos)]
-            return gi_id, (start_pos, stop_pos)
+            return gi_id, start_pos, stop_pos
     else:
-        return None
+        return 0, 0, 0
 
 
-def query_nbi(gi_id, out_dir):
+def query_ncbi(gi_id):
     """
     """
     Entrez.email = "chiara.becht@web.de"
@@ -211,13 +184,15 @@ def query_nbi(gi_id, out_dir):
                                 api_key='c4507f85c841d7430a209603112dba418607')
     
     gb_obj = SeqIO.read(handle, 'gb')
-    file_name = out_dir + '/' + gi_id + '.gb'
+    file_name = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache/' + gi_id + '.gb'
     SeqIO.write(gb_obj, file_name, 'gb')
 
 
 def extract_GO_EC_numbers(gb_file, read_start, read_stop):
     """
     """
+    #file_path = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache/'
+    #file = file_path + gb_file
     # read genbank file
     gb_record = SeqIO.read(open(gb_file, 'r'), 'genbank')
 
@@ -230,7 +205,7 @@ def extract_GO_EC_numbers(gb_file, read_start, read_stop):
 
     # check whether read length is one than execute exception, else check which features are spanned
     if (read_stop - read_start) == 1:
-        print('READ lenght is 1')
+        #print('READ lenght is 1')
         for locs in gb_record.features:
             # extract the first start and last stop position (this should allow handling joins as well)
             loc = str(locs.location).split(':')
@@ -241,16 +216,16 @@ def extract_GO_EC_numbers(gb_file, read_start, read_stop):
             
             # find the feature where the start position is fitting in:
             if loc_start <= read_start <= loc_end:
-                print(loc_start, read_start, loc_end)
+                #print(loc_start, read_start, loc_end)
                 try:
-                    print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
+                    #print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
                     GO = locs.qualifiers['GO_function'][0].split(';')
-                    print('GO FUNCTION', GO)
+                    #print('GO FUNCTION', GO)
                     for annot in GO:
                         GO_anot = annot.split(' - ')
                         GO_anot_nr = GO_anot[0].lstrip()
                         GO_anot_des = GO_anot[1]
-                        print(GO_anot_nr, GO_anot_des)
+                        #print(GO_anot_nr, GO_anot_des)
 
                         GO_num_counts[GO_anot_nr] += 1
                         GO_des_counts[GO_anot_des] += 1
@@ -259,12 +234,12 @@ def extract_GO_EC_numbers(gb_file, read_start, read_stop):
 
                 try:
                     EC_num = locs.qualifiers['EC_number'][0]
-                    print(EC_num)
+                    #print(EC_num)
                     EC_counts[EC_num] += 1
                 except:
                     continue
     else:
-        print('READ length > 1')
+        #print('READ length > 1')
         for locs in gb_record.features:
             # extract the first start and last stop position (this should allow handling joins as well)
             loc = str(locs.location).split(':')
@@ -274,16 +249,16 @@ def extract_GO_EC_numbers(gb_file, read_start, read_stop):
             loc_end = int(re.findall("\d+", loc_end)[0])
             # get all features entirely spanned by a read
             if (read_start <= loc_start <= read_stop) & (read_start <= loc_end <= read_stop):
-                print('feature is in this read', read_start, loc_start, loc_end, read_stop)
+                #print('feature is in this read', read_start, loc_start, loc_end, read_stop)
                 try:
-                    print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
+                    #print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
                     GO = locs.qualifiers['GO_function'][0].split(';')
-                    print('GO FUNCTION', GO)
+                    #print('GO FUNCTION', GO)
                     for annot in GO:
                         GO_anot = annot.split(' - ')
                         GO_anot_nr = GO_anot[0].lstrip()
                         GO_anot_des = GO_anot[1]
-                        print(GO_anot_nr, GO_anot_des)
+                        #print(GO_anot_nr, GO_anot_des)
 
                         GO_num_counts[GO_anot_nr] += 1
                         GO_des_counts[GO_anot_des] += 1
@@ -292,22 +267,22 @@ def extract_GO_EC_numbers(gb_file, read_start, read_stop):
 
                 try:
                     EC_num = locs.qualifiers['EC_number'][0]
-                    print(EC_num)
+                    #print(EC_num)
                     EC_counts[EC_num] += 1
                 except:
                     continue
             # get the border cases, where the read starts or ends in a feature (incomplete spanning of a feature by the read)
             if (loc_start <= read_start <= loc_end) or (loc_start <= read_stop <= loc_end):
-                print('read starts in this feature:', loc_start, read_start, loc_end, 'or read ends in this feature:', loc_start, read_stop, loc_end)
+                #print('read starts in this feature:', loc_start, read_start, loc_end, 'or read ends in this feature:', loc_start, read_stop, loc_end)
                 try:
-                    print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
+                    #print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
                     GO = locs.qualifiers['GO_function'][0].split(';')
-                    print('GO FUNCTION', GO)
+                    #print('GO FUNCTION', GO)
                     for annot in GO:
                         GO_anot = annot.split(' - ')
                         GO_anot_nr = GO_anot[0].lstrip()
                         GO_anot_des = GO_anot[1]
-                        print(GO_anot_nr, GO_anot_des)
+                        #print(GO_anot_nr, GO_anot_des)
 
                         GO_num_counts[GO_anot_nr] += 1
                         GO_des_counts[GO_anot_des] += 1
@@ -316,29 +291,48 @@ def extract_GO_EC_numbers(gb_file, read_start, read_stop):
 
                 try:
                     EC_num = locs.qualifiers['EC_number'][0]
-                    print(EC_num)
+                    #print(EC_num)
                     EC_counts[EC_num] += 1
                 except:
                     continue
+    return GO_num_counts, GO_des_counts, EC_counts
+
+
+def instructions(filename, line_nr):
+    """
+    the work a peon has to do:
+    - read a line from sam file
+    - extract gi_number, start_pos, end_pos
+    - download genbank file for given gi_number if file is not present yet
+    - extract annotationi from genbank file given file, start_pos, end_pos
+    """
+    gi_id, read_start_pos, read_stop_pos = read_process_line(filename, line_nr)
     
-    print(GO_num_counts)
-    print(GO_des_counts)
-    print(EC_counts)
+
+    if gi_id != 0:
+        print(gi_id)
+        gb_file = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache/' + gi_id + '.gb'
+        if os.path.isfile(gb_file):
+            print('file present do not download')
+            GO_num_counts, GO_des_counts, EC_counts = extract_GO_EC_numbers(gb_file, read_start_pos, read_stop_pos)
+        else:
+            print('file needs to be downloaded')
+            query_ncbi(gi_id)
+            GO_num_counts, GO_des_counts, EC_counts = extract_GO_EC_numbers(gb_file, read_start_pos, read_stop_pos)
+    
+    return GO_num_counts, GO_des_counts, EC_counts
+
 
 if __name__ == '__main__':
     argparser = ap.ArgumentParser(description="test")
-    #argparser.add_argument("-a", action="store", dest="a", required=False, type=int, help="Number of references to download concurrently.")
     argparser.add_argument("-n", action="store", dest="n", type=int, help="Number of peons per client.")
     group = argparser.add_mutually_exclusive_group()
     group.add_argument('-c', action='store_true', dest="c")
     group.add_argument('-s', action='store_true', dest="s")
     argparser.add_argument("--port", action="store", dest="port", type=int, help="port number")
     argparser.add_argument("--host", action="store", dest="host", type=str, help="host")
-    #argparser.add_argument("STARTING_PUBMED_ID", action="store", nargs=1)
     args = argparser.parse_args()
     print(args)
-    #print("Getting: ", args.STARTING_PUBMED_ID)
-    #pmid = args.STARTING_PUBMED_ID
     n = args.n
     POISONPILL = "MEMENTOMORI"
     ERROR = "DOH"
@@ -354,27 +348,10 @@ if __name__ == '__main__':
     
     filename = 'Dummy.sam'
     storage_loc = './output'
-
-    data = []
-    f_names = []
-    s_locs = []
-    for line in lines:
-        d = [filename, line, storage_loc]
-        data.append(d)
-        f_names.append(filename)
-        s_locs.append(storage_loc)
-    
-    data_list = [f_names, lines, s_locs]
-    #func = partial(instructions, filename, storage_loc)
-    func1 = partial(read_process_line, filename)
-
-    # task 2:
-    gb_cache = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache'
-    func2 = partial(query_nbi, gb_cache)
+    func = partial(instructions, filename)
     
     if args.s:
-        #server = mp.Process(target=runserver, args=(func, lines))
-        server = mp.Process(target=runserver, args=(func1, lines))
+        server = mp.Process(target=runserver, args=(func, lines))
         server.start()
         time.sleep(1)
         server.join()
