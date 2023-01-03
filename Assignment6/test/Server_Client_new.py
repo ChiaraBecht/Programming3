@@ -6,6 +6,7 @@ from functools import partial
 from Bio import Entrez
 from Bio import SeqIO
 from collections import defaultdict
+import re
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
