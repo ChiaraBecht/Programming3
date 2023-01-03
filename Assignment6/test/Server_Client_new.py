@@ -3,6 +3,8 @@ from multiprocessing.managers import BaseManager, SyncManager
 import time, queue
 import argparse as ap
 from functools import partial
+from Bio import Entrez
+from Bio import SeqIO
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
@@ -25,37 +27,41 @@ def make_server_manager(port, authkey):
     print('Server started at port %s' % port)
     return manager
 
-def runserver(fn, data): #fn, data
+def runserver(fn, data_1): #fn, data
 # Start a shared manager server and access its queues
     manager = make_server_manager(PORTNUM, b'whathasitgotinitspocketsesss?')
     shared_job_q = manager.get_job_q()
     shared_result_q = manager.get_result_q()
 
-    #if not data:
-    #    print("Gimme something to do here!")
-    #    return
+    if not data_1:
+        print("Gimme something to do here!")
+        return
     
 
     print("Sending data!")
-    for d in data:
+    for d in data_1:
         print('iterate over data and print each item', d)
         shared_job_q.put({'fn' : fn, 'arg' : d})
         print({'fn' : fn, 'arg' : d})
 
     time.sleep(2)  
 
-    results = []
+    results_1 = []
     while True:
         try:
             result = shared_result_q.get_nowait()
-            results.append(result)
+            results_1.append(result)
             print("Got result!", result)
-            if len(results) == len(data):
+            if len(results_1) == len(data_1):
                 print("Got all results!")
                 break
         except queue.Empty:
             time.sleep(1)
             continue
+    
+    # results of job 1:
+    for res in results_1:
+        print(res['result'])
     # Tell the client process no more data will be forthcoming
     print("Time to kill some peons!")
     shared_job_q.put(POISONPILL)
@@ -64,7 +70,8 @@ def runserver(fn, data): #fn, data
     time.sleep(5)
     print("Aaaaaand we're done for the server!")
     manager.shutdown()
-    print(results)
+    #print(results)
+    
 
 
 def make_client_manager(ip, port, authkey):
@@ -177,18 +184,34 @@ def read_process_line(filename, line_nr):
             read_len = len(read_seq)
             stop_pos = int(start_pos) + read_len
             print(gi_id, NCBI_id, start_pos, stop_pos)
-            mapping_info = [gi_id,(start_pos, stop_pos)]
-            return mapping_info
+            #mapping_info = [gi_id,(start_pos, stop_pos)]
+            return gi_id, (start_pos, stop_pos)
         except:
             print('exception: no read sequence')
             read_len = 1
             print(read_len)
             stop_pos = int(start_pos) + read_len
             print(gi_id, NCBI_id, start_pos, stop_pos)
-            mapping_info = [gi_id, (start_pos, stop_pos)]
-            return mapping_info
+            #mapping_info = [gi_id, (start_pos, stop_pos)]
+            return gi_id, (start_pos, stop_pos)
     else:
-        print('exception: no ref id')
+        return None
+
+
+def query_nbi(gi_id, out_dir):
+    """
+    """
+    Entrez.email = "chiara.becht@web.de"
+    handle = Entrez.efetch(db='nucleotide',
+                                id = gi_id, 
+                                rettype = 'gbwithparts', 
+                                retmode = 'text', 
+                                api_key='c4507f85c841d7430a209603112dba418607')
+    
+    gb_obj = SeqIO.read(handle, 'gb')
+    file_name = out_dir + '/' + gi_id + '.gb'
+    SeqIO.write(gb_obj, file_name, 'gb')
+
 
 
 
@@ -234,6 +257,10 @@ if __name__ == '__main__':
     data_list = [f_names, lines, s_locs]
     #func = partial(instructions, filename, storage_loc)
     func1 = partial(read_process_line, filename)
+
+    # task 2:
+    gb_cache = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache'
+    func2 = partial(query_nbi, gb_cache)
     
     if args.s:
         #server = mp.Process(target=runserver, args=(func, lines))
