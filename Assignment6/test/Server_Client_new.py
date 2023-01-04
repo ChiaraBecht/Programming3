@@ -9,6 +9,11 @@ from collections import defaultdict
 import re
 import os
 import pandas as pd
+import sys
+from visualise_annotation import produce_visualisation
+from process_line import read_process_line
+from query_ncbi import query_ncbi
+from extract_Annotation_from_gb import extract_GO_EC_numbers
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
@@ -128,6 +133,8 @@ def runserver(fn, data):
     GO_terms_df.to_csv(GO_t_out, index=False)
     EC_numb_df.to_csv(EC_n_out, index=False)
 
+    produce_visualisation()
+
 
 def make_client_manager(ip, port, authkey):
     """ Create a manager for a client. This manager connects to a server on the
@@ -185,170 +192,6 @@ def peon(job_q, result_q):
         except queue.Empty:
             print("sleepytime for", my_name)
             time.sleep(1)
-
-
-def read_process_line(filename, line_nr):
-    """
-    Open file, read specified line number and extract gi_number and start and stop position
-    """
-    # read specific line from file
-    with open(filename) as file:
-        for i, l in enumerate(file):
-            if i == line_nr:
-                line = l
-    
-    # process line
-    splitted_line = line.split('\t') #should be tab
-    #print(splitted_line)
-    ref_id = splitted_line[2]
-    #print(ref_id)
-    if ref_id != '*':
-        gi_id = ref_id.split('|')[1]
-        read_seq = splitted_line[9].rstrip()
-        start_pos = int(splitted_line[3])
-        
-        try:
-            #print('try')
-            read_len = len(read_seq)
-            stop_pos = int(start_pos) + read_len
-            #print(gi_id, NCBI_id, start_pos, stop_pos)
-            #mapping_info = [gi_id,(start_pos, stop_pos)]
-            return gi_id, start_pos, stop_pos
-        except:
-            #print('exception: no read sequence')
-            read_len = 1
-            #print(read_len)
-            stop_pos = int(start_pos) + read_len
-            #print(gi_id, NCBI_id, start_pos, stop_pos)
-            #mapping_info = [gi_id, (start_pos, stop_pos)]
-            return gi_id, start_pos, stop_pos
-    else:
-        return 0, 0, 0
-
-
-def query_ncbi(gi_id):
-    """
-    """
-    Entrez.email = "chiara.becht@web.de"
-    handle = Entrez.efetch(db='nucleotide',
-                                id = gi_id, 
-                                rettype = 'gbwithparts', 
-                                retmode = 'text', 
-                                api_key='c4507f85c841d7430a209603112dba418607')
-    
-    gb_obj = SeqIO.read(handle, 'gb')
-    file_name = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache/' + gi_id + '.gb'
-    SeqIO.write(gb_obj, file_name, 'gb')
-
-
-def extract_GO_EC_numbers(gb_file, read_start, read_stop):
-    """
-    """
-    #file_path = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache/'
-    #file = file_path + gb_file
-    # read genbank file
-    gb_record = SeqIO.read(open(gb_file, 'r'), 'genbank')
-
-    # dictionary for GO numbers
-    GO_num_counts = defaultdict(int)
-    # dictionary for GO descriptions
-    GO_des_counts = defaultdict(int)
-    # dictioanry for EC numbers
-    EC_counts = defaultdict(int)
-
-    # check whether read length is one than execute exception, else check which features are spanned
-    if (read_stop - read_start) == 1:
-        #print('READ lenght is 1')
-        for locs in gb_record.features:
-            # extract the first start and last stop position (this should allow handling joins as well)
-            loc = str(locs.location).split(':')
-            loc_start = loc[0]
-            loc_start = int(re.findall("\d+", loc_start)[0])
-            loc_end = loc[-1]
-            loc_end = int(re.findall("\d+", loc_end)[0])
-            
-            # find the feature where the start position is fitting in:
-            if loc_start <= read_start <= loc_end:
-                #print(loc_start, read_start, loc_end)
-                try:
-                    #print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
-                    GO = locs.qualifiers['GO_function'][0].split(';')
-                    #print('GO FUNCTION', GO)
-                    for annot in GO:
-                        GO_anot = annot.split(' - ')
-                        GO_anot_nr = GO_anot[0].lstrip()
-                        GO_anot_des = GO_anot[1]
-                        #print(GO_anot_nr, GO_anot_des)
-
-                        GO_num_counts[GO_anot_nr] += 1
-                        GO_des_counts[GO_anot_des] += 1
-                except:
-                    continue
-
-                try:
-                    EC_num = locs.qualifiers['EC_number'][0]
-                    #print(EC_num)
-                    EC_counts[EC_num] += 1
-                except:
-                    continue
-    else:
-        #print('READ length > 1')
-        for locs in gb_record.features:
-            # extract the first start and last stop position (this should allow handling joins as well)
-            loc = str(locs.location).split(':')
-            loc_start = loc[0]
-            loc_start = int(re.findall("\d+", loc_start)[0])
-            loc_end = loc[-1]
-            loc_end = int(re.findall("\d+", loc_end)[0])
-            # get all features entirely spanned by a read
-            if (read_start <= loc_start <= read_stop) & (read_start <= loc_end <= read_stop):
-                #print('feature is in this read', read_start, loc_start, loc_end, read_stop)
-                try:
-                    #print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
-                    GO = locs.qualifiers['GO_function'][0].split(';')
-                    #print('GO FUNCTION', GO)
-                    for annot in GO:
-                        GO_anot = annot.split(' - ')
-                        GO_anot_nr = GO_anot[0].lstrip()
-                        GO_anot_des = GO_anot[1]
-                        #print(GO_anot_nr, GO_anot_des)
-
-                        GO_num_counts[GO_anot_nr] += 1
-                        GO_des_counts[GO_anot_des] += 1
-                except:
-                    continue
-
-                try:
-                    EC_num = locs.qualifiers['EC_number'][0]
-                    #print(EC_num)
-                    EC_counts[EC_num] += 1
-                except:
-                    continue
-            # get the border cases, where the read starts or ends in a feature (incomplete spanning of a feature by the read)
-            if (loc_start <= read_start <= loc_end) or (loc_start <= read_stop <= loc_end):
-                #print('read starts in this feature:', loc_start, read_start, loc_end, 'or read ends in this feature:', loc_start, read_stop, loc_end)
-                try:
-                    #print('GO FUNCTION COMPLETE', locs.qualifiers['GO_function'])
-                    GO = locs.qualifiers['GO_function'][0].split(';')
-                    #print('GO FUNCTION', GO)
-                    for annot in GO:
-                        GO_anot = annot.split(' - ')
-                        GO_anot_nr = GO_anot[0].lstrip()
-                        GO_anot_des = GO_anot[1]
-                        #print(GO_anot_nr, GO_anot_des)
-
-                        GO_num_counts[GO_anot_nr] += 1
-                        GO_des_counts[GO_anot_des] += 1
-                except:
-                    continue
-
-                try:
-                    EC_num = locs.qualifiers['EC_number'][0]
-                    #print(EC_num)
-                    EC_counts[EC_num] += 1
-                except:
-                    continue
-    return GO_num_counts, GO_des_counts, EC_counts
 
 
 def instructions(filename, line_nr):
