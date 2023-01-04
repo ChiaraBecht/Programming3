@@ -20,7 +20,7 @@ export reference=/data/dataprocessing/MinIONData/all_bacteria.mmi
 export reads=/data/dataprocessing/MinIONData/all.fq
 
 #minimap2 -ax map-ont ${reference} ${reads} > /homes/cbecht/programming3/Programming3/Assignment6/output/alignments.sam
-minimap2 -ax map-ont -t 15 ${reference} ${reads} > /students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam
+minimap2 -ax map-ont -t 15 ${reference} ${reads} > /students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment_run1.sam
 
 # store tested parameter settings
 #cat /students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam | head -n 1 >> mapping_parameter_settings_history.txt
