@@ -182,7 +182,7 @@ def peon(job_q, result_q):
                 return
             else:
                 try:
-                    result = job['fn'](job['arg']) #result = job['fn'](job['arg'][0], job['arg'][1], job['arg'][2])
+                    result = job['fn'](job['arg'])
                     print("Peon %s Workwork on %s!" % (my_name, job['arg']))
                     result_q.put({'job': job, 'result' : result})
                 except NameError:
@@ -237,13 +237,13 @@ if __name__ == '__main__':
     AUTHKEY = b'whathasitgotinitspocketsesss?'
 
     lines = []
-    with open('Dummy.sam') as file:
+    with open('/students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam') as file:
         # get file length measured by characters
         for i,line in enumerate(file):
             lines.append(i)
     
-    filename = 'Dummy.sam'
-    storage_loc = './output'
+    filename = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam'
+    storage_loc = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output'
     func = partial(instructions, filename)
     
     if args.s:
