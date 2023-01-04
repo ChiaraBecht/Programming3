@@ -1,28 +1,37 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+import ReadConfig
+import pickle
+
+config = ReadConfig.get_config()
+file_path = config['storage_location']
 
 def visualise_output(file):
     """
     """
+    # open file
+    with open(file, 'rb') as f:
+        GO_num_dict = pickle.load(f)
+    
+    # plot
     plt.clf()
-    df = pd.read_csv(file)
-    plt.barh(df.iloc[:, 0], df.iloc[:, 1])
+    plt.barh(list(GO_num_dict.keys()),list(GO_num_dict.values()))
     plt.show()
-    out_name = file + '.png'
-    plt.savefig(out_name)
+    
+    # save figure
+    prefix = file.split('.')[0]
+    name = prefix + '.png'
+    plt.savefig(name)
 
 def produce_visualisation():
     """
     """
-    # define path of extracted annotation count files
-    path = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/'
-
     # list the files
     file_list = []
-    for file in os.listdir(path):
-        if file.endswith(".csv"):
-            path_to_file = path + file
+    for file in os.listdir(file_path):
+        if file.endswith(".pkl"):
+            path_to_file = file_path + file
             file_list.append(path_to_file)
 
     for file in file_list:
