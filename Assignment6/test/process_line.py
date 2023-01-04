@@ -1,41 +1,41 @@
 import linecache
-def process_line(line):
+def read_process_line(filename, line_nr):
     """
-    Extract the relevant features from the mapping file: reference identifier of the genome, start pos, sequence length. stop position.
-    The stop position of the read is given indirectly by adding the sequence length to the start position. In some cases the sequence
-    length is not given, then the length is set to 1.
-    :params:
-        s
-    :return:
+    Open file, read specified line number and extract gi_number and start and stop position
+    """
+    # read specific line from file
+    with open(filename) as file:
+        for i, l in enumerate(file):
+            if i == line_nr:
+                line = l
     
-    """
+    # process line
     splitted_line = line.split('\t') #should be tab
-    print(splitted_line)
+    #print(splitted_line)
     ref_id = splitted_line[2]
-    print(ref_id)
+    #print(ref_id)
     if ref_id != '*':
         gi_id = ref_id.split('|')[1]
-        NCBI_id = ref_id.split('|')[3]
         read_seq = splitted_line[9].rstrip()
         start_pos = int(splitted_line[3])
         
         try:
-            print('try')
+            #print('try')
             read_len = len(read_seq)
             stop_pos = int(start_pos) + read_len
-            print(gi_id, NCBI_id, start_pos, stop_pos)
-            mapping_info = [gi_id,(start_pos, stop_pos)]
-            return mapping_info
+            #print(gi_id, NCBI_id, start_pos, stop_pos)
+            #mapping_info = [gi_id,(start_pos, stop_pos)]
+            return gi_id, start_pos, stop_pos
         except:
-            print('exception: no read sequence')
+            #print('exception: no read sequence')
             read_len = 1
-            print(read_len)
+            #print(read_len)
             stop_pos = int(start_pos) + read_len
-            print(gi_id, NCBI_id, start_pos, stop_pos)
-            mapping_info = [gi_id, (start_pos, stop_pos)]
-            return mapping_info
+            #print(gi_id, NCBI_id, start_pos, stop_pos)
+            #mapping_info = [gi_id, (start_pos, stop_pos)]
+            return gi_id, start_pos, stop_pos
     else:
-        print('exception: no ref id')
+        return 0, 0, 0
 
 if __name__ == '__main__':
     #line = linecache.getline('/students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment.sam', 2)
@@ -43,6 +43,6 @@ if __name__ == '__main__':
         file.readline()
         file.readline()
         line = file.readline()
-    result = process_line(line)
+    result = read_process_line(line)
     print(result)
     
