@@ -2,16 +2,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-# define path of extracted annotation count files
-path = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/'
-
-# list the files
-file_list = []
-for file in os.listdir(path):
-    if file.endswith(".csv"):
-        path_to_file = path + file
-        file_list.append(path_to_file)
-
 def visualise_output(file):
     """
     """
@@ -22,5 +12,21 @@ def visualise_output(file):
     out_name = file + '.png'
     plt.savefig(out_name)
 
-for file in file_list:
-    visualise_output(file)
+def produce_visualisation():
+    """
+    """
+    # define path of extracted annotation count files
+    path = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/'
+
+    # list the files
+    file_list = []
+    for file in os.listdir(path):
+        if file.endswith(".csv"):
+            path_to_file = path + file
+            file_list.append(path_to_file)
+
+    for file in file_list:
+        visualise_output(file)
+
+if __name__ == '__main__':
+    produce_visualisation()
