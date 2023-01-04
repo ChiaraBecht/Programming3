@@ -6,9 +6,10 @@ from functools import partial
 from collections import defaultdict
 import os
 import pickle
-import numpy as np 
+import numpy as np
+from pathlib import Path 
 import ReadConfig
-from visualise_annotation import produce_visualisation
+from visualise_annotation import produce_visualisation_stats
 from process_line import read_process_line
 from query_ncbi import query_ncbi
 from extract_Annotation_from_gb import extract_GO_EC_numbers
@@ -16,6 +17,7 @@ from extract_Annotation_from_gb import extract_GO_EC_numbers
 config = ReadConfig.get_config()
 mapping_file = config['mapping_file']
 storage_location = config['storage_location']
+gb_cache = config['genbank_cache']
 
 def make_server_manager(port, authkey):
     """ Create a manager for the server, listening on the given port.
@@ -57,41 +59,55 @@ def runserver(fn, data):
 
     # manage results
     results = np.zeros(len(data), int)
+    map_status = defaultdict(int)
     GO_numbers = defaultdict(int)
     GO_terms = defaultdict(int)
     EC_numbers = defaultdict(int)
+    GO_annotation = defaultdict(int)
+    EC_annotation = defaultdict(int)
     index = 0
 
     while True:
         try:
             result = shared_result_q.get_nowait()
-            if result['result'][0] != 'DOH':
+            if (result['result'][0] != 'DOH') & (result['result'][0] != 0):
                 GO_num_dict = result['result'][0]
                 GO_des_dict = result['result'][1]
                 EC_dict = result['result'][2]
-                #results.append(result['result'][3])
                 line_nr = result['result'][3]
                 results[line_nr] += 1
                 index = len(np.where(results == 1)[0])
+                map_st = result['result'][4]
+                map_status[map_st] += 1
 
                 # create dictionary that adds counts found for each key
-                for GO_num in GO_num_dict.keys():
+                GO_keys = GO_num_dict.keys()
+                if len(GO_keys) > 0:
+                    GO_annotation['annotation'] += 1
+                else:
+                    GO_annotation['no annotation'] += 1
+                
+                for GO_num in GO_keys:
                     GO_numbers[GO_num] += GO_num_dict[GO_num]
-
                 for GO_des in GO_des_dict.keys():
                     GO_terms[GO_des] += GO_des_dict[GO_des]
                 
-                
-                for EC_num in EC_dict.keys():
+                EC_keys = EC_dict.keys()
+                if len(EC_keys) > 0:
+                    EC_annotation['annotation'] += 1
+                else:
+                    EC_annotation['no annotation'] += 1
+                for EC_num in EC_keys:
                     EC_numbers[EC_num] += EC_dict[EC_num]
             else:
-                #results.append(result['result'][1])
-                line_nr = result['result'][1]
+                line_nr = result['result'][3]
                 results[line_nr] += 1
                 index = len(np.where(results == 1)[0])
+                map_st = result['result'][4]
+                map_status[map_st] += 1
             print("Got result!", result)
+            print(results)
             if index == len(data):
-            #if len(results) == len(data):
                 print("Got all results!")
                 break
         except queue.Empty:
@@ -107,19 +123,36 @@ def runserver(fn, data):
     print("Aaaaaand we're done for the server!")
     manager.shutdown()
 
+    # write results to files
+    out_dir_p = Path(storage_location) / run_id
+    if not(out_dir_p.exists()):
+            out_dir_p.mkdir(parents=True, exist_ok=False)
+
     GO_n_out = 'GO_number_count.pkl'
-    with open(f'{storage_location}/{GO_n_out}', 'wb') as file:
+    with open(f'{out_dir_p}/{GO_n_out}', 'wb') as file:
         pickle.dump(GO_numbers, file)
     
     GO_t_out = 'GO_terms_count.pkl'
-    with open(f'{storage_location}/{GO_t_out}', 'wb') as file:
+    with open(f'{out_dir_p}/{GO_t_out}', 'wb') as file:
         pickle.dump(GO_terms, file)
     
     EC_n_out = 'EC_numbers_count.pkl'
-    with open(f'{storage_location}/{EC_n_out}', 'wb') as file:
-        pickle.dump(EC_numbers, file)    
+    with open(f'{out_dir_p}/{EC_n_out}', 'wb') as file:
+        pickle.dump(EC_numbers, file)
     
-    #produce_visualisation()
+    map_stat_out = 'Mapping_status.pkl'
+    with open(f'{out_dir_p}/{map_stat_out}', 'wb') as file:
+        pickle.dump(map_status, file)
+    
+    GO_annot_out = 'GO_Annotation_status.pkl'
+    with open(f'{out_dir_p}/{GO_annot_out}', 'wb') as file:
+        pickle.dump(GO_annotation, file)
+    
+    EC_annot_out = 'EC_Annotation_status.pkl'
+    with open(f'{out_dir_p}/{EC_annot_out}', 'wb') as file:
+        pickle.dump(EC_annotation, file)
+    
+    produce_visualisation_stats(run_id)
 
 
 def make_client_manager(ip, port, authkey):
@@ -188,25 +221,29 @@ def instructions(filename, line_nr):
     - download genbank file for given gi_number if file is not present yet
     - extract annotationi from genbank file given file, start_pos, end_pos
     """
-    gi_id, read_start_pos, read_stop_pos = read_process_line(filename, line_nr)
+    gi_id, read_start_pos, read_stop_pos, map_status = read_process_line(filename, line_nr)
     
 
     if gi_id != 0:
-        print(gi_id)
-        gb_file = '/students/2021-2022/master/Chiara_DSLS/Assignment6/genbank_cache/' + gi_id + '.gb'
+        gb_file = gb_cache + gi_id + '.gb'
         if os.path.isfile(gb_file):
             print('file present do not download')
             GO_num_counts, GO_des_counts, EC_counts = extract_GO_EC_numbers(gb_file, read_start_pos, read_stop_pos)
+            return GO_num_counts, GO_des_counts, EC_counts, line_nr, map_status
         else:
             print('file needs to be downloaded')
             query_ncbi(gi_id)
             GO_num_counts, GO_des_counts, EC_counts = extract_GO_EC_numbers(gb_file, read_start_pos, read_stop_pos)
+            return GO_num_counts, GO_des_counts, EC_counts, line_nr, map_status
+    else:
+        return 0, 0, 0, line_nr, map_status
     
-    return GO_num_counts, GO_des_counts, EC_counts, line_nr
+    #return GO_num_counts, GO_des_counts, EC_counts, line_nr, map_status #gi_id, read_start_pos, read_stop_pos, line_nr, map_status #
 
 
 if __name__ == '__main__':
     argparser = ap.ArgumentParser(description="test")
+    argparser.add_argument("-r", action="store", dest="r", type=str, help="run_identifier")
     argparser.add_argument("-n", action="store", dest="n", type=int, help="Number of peons per client.")
     group = argparser.add_mutually_exclusive_group()
     group.add_argument('-c', action='store_true', dest="c")
@@ -215,6 +252,7 @@ if __name__ == '__main__':
     argparser.add_argument("--host", action="store", dest="host", type=str, help="host")
     args = argparser.parse_args()
     print(args)
+    run_id = args.r
     n = args.n
     POISONPILL = "MEMENTOMORI"
     ERROR = "DOH"
@@ -229,7 +267,6 @@ if __name__ == '__main__':
             lines.append(i)
     
     filename = mapping_file
-    #storage_loc = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output'
     func = partial(instructions, filename)
     
     if args.s:
