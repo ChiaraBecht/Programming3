@@ -5,7 +5,7 @@ import argparse as ap
 from functools import partial
 from collections import defaultdict
 import os
-import pandas as pd
+import pickle
 from visualise_annotation import produce_visualisation
 from process_line import read_process_line
 from query_ncbi import query_ncbi
@@ -52,6 +52,11 @@ def runserver(fn, data):
     time.sleep(2)  
 
     results = []
+    # manage results
+    GO_numbers = defaultdict(int)
+    GO_terms = defaultdict(int)
+    EC_numbers = defaultdict(int)
+    
     while True:
         try:
             result = shared_result_q.get_nowait()
@@ -73,16 +78,7 @@ def runserver(fn, data):
     print("Aaaaaand we're done for the server!")
     manager.shutdown()
     
-    # manage results
-    GO_numbers = defaultdict(int)
-    GO_nums = []
-    GO_n_count = []
-    GO_terms = defaultdict(int)
-    GO_terms_list = []
-    GO_terms_count = []
-    EC_numbers = defaultdict(int)
-    EC_num_list = []
-    EC_counts = []
+    
 
     for res in results:
         if res['result'] != 'DOH':
@@ -102,33 +98,20 @@ def runserver(fn, data):
                 EC_numbers[EC_num] += EC_dict[EC_num]
             
     
-    # from the dictionary with identifier as key and count as value make two lists with identifiers and counts
-    for GO_n, count in GO_numbers.items():
-        GO_nums.append(GO_n)
-        GO_n_count.append(count)
-    
-    for GO_t, count in GO_terms.items():
-                GO_terms_list.append(GO_t)
-                GO_terms_count.append(count)
-    
-    for EC_n, count in EC_numbers.items():
-                EC_num_list.append(EC_n)
-                EC_counts.append(count)
-    
-    GO_numb_df = pd.DataFrame({'GO_numbers': GO_nums, 'counts': GO_n_count})
-    GO_terms_df = pd.DataFrame({'GO_terms': GO_terms_list, 'counts': GO_terms_count})
-    EC_numb_df = pd.DataFrame({'EC_numbers': EC_num_list, 'counts': EC_counts})
-
     out_dir = '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/'
 
-    GO_n_out = out_dir + 'GO_number_count.csv'
-    GO_t_out = out_dir + 'GO_terms_count.csv'
-    EC_n_out = out_dir + 'EC_numbers_count.csv'
-
-    GO_numb_df.to_csv(GO_n_out, index=False)
-    GO_terms_df.to_csv(GO_t_out, index=False)
-    EC_numb_df.to_csv(EC_n_out, index=False)
-
+    GO_n_out = 'GO_number_count.pkl'
+    with open(f'{out_dir}/{GO_n_out}', 'wb') as file:
+        pickle.dump(GO_numbers, file)
+    
+    GO_t_out = 'GO_terms_count.pkl'
+    with open(f'{out_dir}/{GO_t_out}', 'wb') as file:
+        pickle.dump(GO_terms, file)
+    
+    EC_n_out = 'EC_numbers_count.pkl'
+    with open(f'{out_dir}/{EC_n_out}', 'wb') as file:
+        pickle.dump(EC_numbers, file)    
+    
     produce_visualisation()
 
 
