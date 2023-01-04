@@ -1,15 +1,11 @@
 import multiprocessing as mp
-from multiprocessing.managers import BaseManager, SyncManager
+from multiprocessing.managers import BaseManager
 import time, queue
 import argparse as ap
 from functools import partial
-from Bio import Entrez
-from Bio import SeqIO
 from collections import defaultdict
-import re
 import os
 import pandas as pd
-import sys
 from visualise_annotation import produce_visualisation
 from process_line import read_process_line
 from query_ncbi import query_ncbi
@@ -216,7 +212,7 @@ def instructions(filename, line_nr):
             query_ncbi(gi_id)
             GO_num_counts, GO_des_counts, EC_counts = extract_GO_EC_numbers(gb_file, read_start_pos, read_stop_pos)
     
-    return GO_num_counts, GO_des_counts, EC_counts
+    return GO_num_counts, GO_des_counts, EC_counts, line_nr
 
 
 if __name__ == '__main__':
