@@ -7,7 +7,7 @@ The mapping step is conducted in parallel, exploiting the tools multiprocessing 
 - Helper functions: config file parser, functions to read and process mapping file, query ncbi and download genbank files, extract annotations, result presentation scripts
 ## Instructions
 Produce a single mapping file or several by running the assignment6.sh script. I have pre-selected standard parameter settings and one variation. If you want to add another mapping run add it to assignment6.sh, don't forget to adjust the runtime estimate in the SLURM job set up. Furthermore, dont forget to add run number to the file name. Run the assignment6.sh from command line using:
-- > sbatch assignment6
+> sbatch assignment6
 
 For each mapping file (in my case run_1 and run_2) a server and its corresponding servers need to be started to get the annotation statistics. The server and clients need to be started from command line while connected to the network and inside a tmux session. Setup for run 1:
 - Server
