@@ -153,6 +153,15 @@ def run_workers(job_q, result_q, num_processes):
         temP.join()
 
 def peon(job_q, result_q):
+    """
+    Executes work by picking up jobs from the job queue, processing the job by applying instructions
+    derived from the function in the job to the data in the job object. The processed results are
+    written to a csv file. Each peon appends its jobs to an own file. As result the line number is put
+    to the result queue. If job is a poisonpill stop peon.
+    :param:
+        job_q: job queue
+        result_q: result queue
+    """
     my_name = mp.current_process().name
 
     out_dir_p = Path(storage_location) / run_id
@@ -185,11 +194,21 @@ def peon(job_q, result_q):
 
 def instructions(filename, line_nr):
     """
-    the work a peon has to do:
-    - read a line from sam file
-    - extract gi_number, start_pos, end_pos
-    - download genbank file for given gi_number if file is not present yet
-    - extract annotationi from genbank file given file, start_pos, end_pos
+    The smalles unit of a job a peon has to conduct. The job consists of the following tasks:
+    - read one line from the mapping file (= one read), extract the gi identifier, the start position, 
+    calculate read length, from start and read length get stop position
+    - for given gi identifier download genbank file from NCBI if not present in cache already
+    - for given gi identifier, start and stop position of the processed read extract annotations from
+    the genbank file
+    :param:
+        filename: path to mapping file and mapping file name
+        line_nr: index of line to read from the mapping file
+    :return:
+        GO_num_counts: dictionary with GO-number as key and counts as value
+        GO_des_counts: dictianary with GO-terms as key and counts as value
+        EC_counts: dictionary with EC-numbers as key and counts as value
+        line_nr: line number of the processed read
+        map_status: string indicating whether a read was mapped or unmapped: 'mappped' | 'unmapped' | 'invalid'
     """
     GO_num_counts = defaultdict(int)
     GO_des_counts = defaultdict(int)
