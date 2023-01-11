@@ -99,10 +99,16 @@ def runserver(fn, data):
 
 
 def make_client_manager(ip, port, authkey):
-    """ Create a manager for a client. This manager connects to a server on the
-        given address and exposes the get_job_q and get_result_q methods for
-        accessing the shared queues from the server.
-        Return a manager object.
+    """ 
+    Create manager for a client. The manager connects to a server, given address and
+    exposes the get_job_q and get_result_q methods to access the sahred queues from the
+    server.
+    :param:
+        ip: host ip address
+        port: port number of the server to access
+        authkey: authorization key
+    :return:
+        manager: client manager object
     """
     class ServerQueueManager(BaseManager):
         pass
@@ -118,12 +124,25 @@ def make_client_manager(ip, port, authkey):
 
 
 def runclient(num_processes):
+    """
+    Connects a client to the server and registers the job and result queues. Starts its workers.
+    :param:
+        num_process: number of process to start per client
+    """
     manager = make_client_manager(IP, PORTNUM, AUTHKEY)
     job_q = manager.get_job_q()
     result_q = manager.get_result_q()
     run_workers(job_q, result_q, num_processes)
     
 def run_workers(job_q, result_q, num_processes):
+    """
+    Spawns as many process as defined in the run_client function. Starts the peon function per
+    spawned process.
+    :param:
+        job_q: shared job queue between server and client
+        result_q: shared result queue between server and client
+        num_processes: number of processes
+    """
     processes = []
     for p in range(num_processes):
         temP = mp.Process(target=peon, args=(job_q, result_q))
