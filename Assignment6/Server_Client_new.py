@@ -19,8 +19,13 @@ storage_location = config['storage_location']
 gb_cache = config['genbank_cache']
 
 def make_server_manager(port, authkey):
-    """ Create a manager for the server, listening on the given port.
-        Return a manager object with get_job_q and get_result_q methods.
+    """ 
+    Create manager for the server, that listens at given port
+    :param:
+	    port: port number choose 2024 or higher
+	    authkey: authorization key as string
+    :return:
+	    manager: server manager object with get_job_q and get_result_q methods
     """
     job_q = queue.Queue()
     result_q = queue.Queue()
@@ -40,7 +45,15 @@ def make_server_manager(port, authkey):
     return manager
 
 def runserver(fn, data):
-# Start a shared manager server and access its queues
+    """
+    Fills the job queue with instructions and data. Collects results from the result
+    queue. Kills peons as soon as all results are collected. Shuts the server down when
+    all jobs are done.
+    :param:
+	    fn: function that instructs the peons
+	    data: data the instructions shall be applied on
+    """
+    # Start a shared manager server and access its queues
     manager = make_server_manager(PORTNUM, b'whathasitgotinitspocketsesss?')
     shared_job_q = manager.get_job_q()
     shared_result_q = manager.get_result_q()
