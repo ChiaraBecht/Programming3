@@ -9,7 +9,7 @@ import pickle
 import numpy as np
 from pathlib import Path 
 import ReadConfig
-from process_line import read_process_line
+from read_process_line import read_process_line
 from query_ncbi import query_ncbi
 from extract_Annotation_from_gb import extract_GO_EC_numbers
 from create_write_result_files import create_result_file
