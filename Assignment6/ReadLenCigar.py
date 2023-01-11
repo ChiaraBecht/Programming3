@@ -6,9 +6,9 @@ def read_len_from_cigar(cigar_string):
     leftmost position in the cigar string that is not clipped.
 
     :param:
-        cigar_string: cigar string extracted from a mapping file
+    cigar_string: cigar string extracted from a mapping file
     :return:
-        seq_len: length of clipped read
+    seq_len: length of clipped read
     """
     cigar = [cigar_string]
     # get rid of clipping
