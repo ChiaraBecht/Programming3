@@ -41,3 +41,4 @@ def raster_file(filename, subfilename, target, numb_servers):
 
 if __name__ == '__main__':
     raster_file('/students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment_run1.sam', 'subfile_run1', '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/', 4)
+    raster_file('/students/2021-2022/master/Chiara_DSLS/Assignment6/output/alignment_run2.sam', 'subfile_run2', '/students/2021-2022/master/Chiara_DSLS/Assignment6/output/', 4)
