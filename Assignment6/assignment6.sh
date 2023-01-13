@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# run for 45 minutes
+# run for 30 minutes
 #              d-hh:mm:ss
-#SBATCH --time 0-00:45:00
+#SBATCH --time 0-00:30:00
 
 #SBATCH --cpus-per-task=16
 #SBATCH --job-name=Chiara
