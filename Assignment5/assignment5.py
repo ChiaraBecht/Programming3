@@ -1,3 +1,6 @@
+"""
+Credits to Thijs and Steve who got me on track with this one
+"""
 from audioop import avg
 import pyspark
 from pyspark.sql import Row
