@@ -1,5 +1,5 @@
 import multiprocessing as mp
-from multiprocessing.managers import BaseManager, SyncManager
+from multiprocessing.managers import BaseManager
 import time, queue
 import Bio.Entrez
 import pickle
@@ -41,7 +41,10 @@ def make_server_manager(port, authkey):
 
 
 def runserver(fn, data):
-# Start a shared manager server and access its queues
+    """
+    Start a server with job and results queue, sent data and receive results.
+    """
+    # Start a shared manager server and access its queues
     manager = make_server_manager(PORTNUM, b'whathasitgotinitspocketsesss?')
     shared_job_q = manager.get_job_q()
     shared_result_q = manager.get_result_q()
@@ -105,7 +108,12 @@ Bio.Entrez.email = "chiara.becht@web.de"
 # download the article references in order to get the data for the job queue
 def download_articles_references(pmid):
     """
-    For a given pubmed id download the references from NCBI using Bio.Entrez library
+    For a given pubmed id download the references from NCBI using elink utility from
+    Bio.Entrez library
+    :param:
+        pmid: start pubmed id
+    :return:
+        references: list of references cited by the start pubmed article
     """
     results = Bio.Entrez.read(Bio.Entrez.elink(dbfrom="pubmed",
                                    db="pmc",
@@ -117,6 +125,13 @@ def download_articles_references(pmid):
 
 # instructions for the client
 def download_authors(pmid):
+    """
+    For a given pubmed id try to obtain the esummary utility from Bio.Entrez library than read
+    this summary to obtain the AuthorList value from the dictionary like record. Next to the 
+    authorlist get the full article for the provided pubmed id. Save the authorlist as object 
+    by pickeling it. Store the article as xml file. Both object and file are saved to the defined
+    output location.
+    """
     try:
         handle = Bio.Entrez.esummary(db="pubmed", id=pmid)
         record = Bio.Entrez.read(handle)
@@ -135,12 +150,19 @@ def download_authors(pmid):
 
 
 def runclient(num_processes):
+    """
+    Make client with job and result queues that are shared with the server and call
+    the run_workers function to start as many processes as requested.
+    """
     manager = make_client_manager(IP, PORTNUM, AUTHKEY)
     job_q = manager.get_job_q()
     result_q = manager.get_result_q()
     run_workers(job_q, result_q, num_processes)
     
 def run_workers(job_q, result_q, num_processes):
+    """
+    Spawn processes per client and give each process access to job and result queue
+    """
     processes = []
     for p in range(num_processes):
         temP = mp.Process(target=peon, args=(job_q, result_q))
@@ -151,6 +173,10 @@ def run_workers(job_q, result_q, num_processes):
         temP.join()
 
 def peon(job_q, result_q):
+    """
+    Pick jobs from the job queue, carry them out and put result to the result queue.
+    If job is poisonpill stop this process.
+    """
     my_name = mp.current_process().name
     while True:
         try:
@@ -178,6 +204,7 @@ if __name__ == '__main__':
     # Create output directory
     output_directory(out_dir_p)
 
+    # set up argparser
     #assignment2.py -n <number_of_peons_per_client> [-c | -s] --port <portnumber> --host <serverhost> -a <number_of_articles_to_download> STARTING_PUBMED_ID
     argparser = ap.ArgumentParser(description="Script that downloads authors to number of user provided articles referenced by the given PubMed ID concurrently.")
     argparser.add_argument("-a", action="store", dest="a", required=False, type=int, help="Number of references to download concurrently.")
